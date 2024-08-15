@@ -110,6 +110,48 @@ def disconnect_no_access_files(log_file, config):
     except Exception as e:
         log_message(log_file, f"An unexpected error occurred: {e}")
 
+def list_sessions(log_file, config):
+    try:
+        output_file = config.get('ListingSessions', 'output_file', fallback='sessions_list.txt')
+        result = subprocess.run(['net', 'session'], capture_output=True, text=True)
+        
+        with open(output_file, 'w') as f:
+            f.write(result.stdout)
+        
+        log_message(log_file, f"Sessions list has been written to {output_file}")
+        
+        # 在日誌中也記錄 sessions 列表
+        log_message(log_file, "Sessions list:")
+        log_message(log_file, result.stdout)
+    
+    except subprocess.CalledProcessError as e:
+        log_message(log_file, f"Error occurred while listing sessions: {e}")
+    except Exception as e:
+        log_message(log_file, f"An unexpected error occurred: {e}")
+
+def list_open_files(log_file, config):
+    try:
+        output_file = config.get('ListingOpenFiles', 'output_file', fallback='open_files_list.txt')
+        
+        # 啟用 OpenFiles 功能
+        subprocess.run(['openfiles', '/local', 'on'], check=True, capture_output=True)
+        
+        result = subprocess.run(['openfiles', '/query', '/fo', 'table'], capture_output=True, text=True)
+        
+        with open(output_file, 'w') as f:
+            f.write(result.stdout)
+        
+        log_message(log_file, f"Open files list has been written to {output_file}")
+        
+        # 在日誌中也記錄 open files 列表
+        log_message(log_file, "Open files list:")
+        log_message(log_file, result.stdout)
+    
+    except subprocess.CalledProcessError as e:
+        log_message(log_file, f"Error occurred while listing open files: {e}")
+    except Exception as e:
+        log_message(log_file, f"An unexpected error occurred: {e}")
+
 def load_config():
     config = configparser.ConfigParser()
     if os.path.exists('settings.ini'):
@@ -119,6 +161,8 @@ def load_config():
         config['Logging'] = {'log_dir': 'C:/logs', 'max_log_files': '10'}
         config['ShareCleaning'] = {'exclude_users': 'administrator,fax'}
         config['OpenFilesCleaning'] = {'exclude_users': 'administrator,fax'}
+        config['ListingSessions'] = {'output_file': 'sessions_list.txt'}
+        config['ListingOpenFiles'] = {'output_file': 'open_files_list.txt'}
         with open('settings.ini', 'w') as configfile:
             config.write(configfile)
     return config
@@ -144,6 +188,10 @@ def main():
             clear_share_sessions(log_file, config)
         elif function == 2:
             disconnect_no_access_files(log_file, config)
+        elif function == 3:
+            list_sessions(log_file, config)
+        elif function == 4:
+            list_open_files(log_file, config)
         else:
             log_message(log_file, f"Unknown function number: {function}")
     
